@@ -1,0 +1,51 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 2
+  template:
+    metadata:
+      name: web
+      labels:
+        app: web
+    spec:
+      dnsPolicy: ClusterFirst
+      containers:
+        - name: web
+          image: portertech/dummy:1.2.0
+          ports:
+            - protocol: TCP
+              containerPort: 8080
+        - name: sensu-agent
+          image: sensu/sensu:5.14.2
+          command: ["/opt/sensu/bin/sensu-agent", "start", "--log-level", "debug"]
+          env:
+            - name: SENSU_BACKEND_URL
+              value: ws://sensu.sensu-system.svc.cluster.local:8081
+            - name: SENSU_NAMESPACE
+              value: default
+            - name: SENSU_SUBSCRIPTIONS
+              value: web
+            - name: SENSU_KEEPALIVE_INTERVAL
+              value: "5"
+            - name: SENSU_KEEPALIVE_TIMEOUT
+              value: "10"
+            - name: SENSU_DEREGISTER
+              value: "true"
+            - name: SENSU_STATSD_EVENT_HANDLERS
+              value: statsd
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: web
+  type: LoadBalancer
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8888
+      targetPort: 8080

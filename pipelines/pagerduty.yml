@@ -1,0 +1,65 @@
+---
+type: Asset
+api_version: core/v2
+metadata:
+  name: sensu-severity-filter
+spec:
+  url: https://assets.bonsai.sensu.io/7ad1099c767ff67ae80a31b0492286c6433a07e7/sensu-severity-filter_0.0.3.tar.gz
+  sha512: 8d001a71a89bc7d3d923c259f53e83098ef197d3c0c665e2ef962c2ede12c3b2db9778907c1907abde7149bc6709052a693ea5283393ba92ac7e877ad4cfb8cc
+---
+type: EventFilter
+api_version: core/v2
+metadata:
+  name: important
+spec:
+  action: allow
+  runtime_assets:
+    - sensu-severity-filter
+  expressions:
+    - has_severity(event, "warning") || has_severity(event, "critical")
+---
+type: Asset
+api_version: core/v2
+metadata:
+  name: sensu-pagerduty-handler
+spec:
+  url: https://assets.bonsai.sensu.io/02fc48fb7cbfd27f36915489af2725034a046772/sensu-pagerduty-handler_1.2.0_linux_amd64.tar.gz
+  sha512: 5be236b5b9ccceb10920d3a171ada4ac4f4caaf87f822475cd48bd7f2fab3235fa298f79ef6f97b0eb6498205740bb1af1120ca036fd3381edfebd9fb15aaa99
+---
+type: Handler
+api_version: core/v2
+metadata:
+  name: pagerduty
+spec:
+  type: pipe
+  runtime_assets:
+  - sensu-pagerduty-handler
+  command: sensu-pagerduty-handler --token 'af0a0c5a43604ae69a248a87f8ed23ca'
+  timeout: 30
+  filters:
+  - is_incident
+  - not_silenced
+  - important
+---
+type: Asset
+api_version: core/v2
+metadata:
+  name: check-plugins
+spec:
+  url: https://github.com/portertech/sensu-plugins-go/releases/download/0.0.1/sensu-check-plugins.tar.gz
+  sha512: 4e6f621ebe652d3b0ba5d4dead8ddb2901ea03f846a1cb2e39ddb71b8d0daa83b54742671f179913ed6c350fc32446a22501339f60b8d4e0cdb6ade5ee77af16
+---
+type: CheckConfig
+api_version: core/v2
+metadata:
+  name: web-healthz
+spec:
+  runtime_assets:
+  - check-plugins
+  command: check-http -u http://localhost:8080/healthz
+  subscriptions:
+  - web
+  interval: 10
+  publish: true
+  handlers:
+  - pagerduty
