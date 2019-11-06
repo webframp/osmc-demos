@@ -36,4 +36,5 @@ spec:
   publish: true
   handlers:
   - pagerduty
+  - slack
   - elastic

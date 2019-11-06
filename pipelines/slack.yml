@@ -1,0 +1,58 @@
+---
+type: EventFilter
+api_version: core/v2
+metadata:
+  name: occurrences
+spec:
+  action: allow
+  expressions:
+    - event.check.occurrences == 1 || event.check.occurrences % (300 / event.check.interval) == 0
+---
+type: Asset
+api_version: core/v2
+metadata:
+  name: sensu-slack-handler
+spec:
+  url: https://assets.bonsai.sensu.io/3149de09525d5e042a83edbb6eb46152b02b5a65/sensu-slack-handler_1.0.3_linux_amd64.tar.gz
+  sha512: 68720865127fbc7c2fe16ca4d7bbf2a187a2df703f4b4acae1c93e8a66556e9079e1270521999b5871473e6c851f51b34097c54fdb8d18eedb7064df9019adc8
+---
+type: Handler
+api_version: core/v2
+metadata:
+  name: slack
+spec:
+  type: pipe
+  runtime_assets:
+  - sensu-slack-handler
+  command: sensu-slack-handler --channel '#osmc-demo' --username 'sensu'
+  env_vars:
+  - SLACK_WEBHOOK_URL=https://hooks.slack.com/services/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
+  timeout: 30
+  filters:
+  - is_incident
+  - not_silenced
+  - occurrences
+---
+type: Asset
+api_version: core/v2
+metadata:
+  name: check-plugins
+spec:
+  url: https://github.com/portertech/sensu-plugins-go/releases/download/0.0.1/sensu-check-plugins.tar.gz
+  sha512: 4e6f621ebe652d3b0ba5d4dead8ddb2901ea03f846a1cb2e39ddb71b8d0daa83b54742671f179913ed6c350fc32446a22501339f60b8d4e0cdb6ade5ee77af16
+---
+type: CheckConfig
+api_version: core/v2
+metadata:
+  name: web-healthz
+spec:
+  runtime_assets:
+  - check-plugins
+  command: check-http -u http://localhost:8080/healthz
+  subscriptions:
+  - web
+  interval: 10
+  publish: true
+  handlers:
+  - pagerduty
+  - slack
