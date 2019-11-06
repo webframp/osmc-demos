@@ -1,12 +1,22 @@
 ---
+type: Asset
+api_version: core/v2
+metadata:
+  name: sensu-fatigue-filter
+spec:
+  url: https://assets.bonsai.sensu.io/e97ee39de0e87525258f8290a6aa8af6ac45636d/sensu-go-fatigue-check-filter_v0.2.2.tar.gz
+  sha512: 6d904803980029d47b31fb59b11c4f321a646513cd33cefd5b765cfae86b132b04a8fd666f8e8aeb4b7e451e8a55e16693fe74a0f208d54a6adc7fabc8582949
+---
 type: EventFilter
 api_version: core/v2
 metadata:
-  name: occurrences
+  name: fatigue
 spec:
   action: allow
+  runtime_assets:
+    - sensu-fatigue-filter
   expressions:
-    - event.check.occurrences == 1 || event.check.occurrences % (300 / event.check.interval) == 0
+    - fatigue_check(event)
 ---
 type: Asset
 api_version: core/v2
@@ -26,12 +36,12 @@ spec:
   - sensu-slack-handler
   command: sensu-slack-handler --channel '#osmc-demo' --username 'sensu'
   env_vars:
-  - SLACK_WEBHOOK_URL=https://hooks.slack.com/services/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
+  - SLACK_WEBHOOK_URL=SECRET
   timeout: 30
   filters:
   - is_incident
   - not_silenced
-  - occurrences
+  - fatigue
 ---
 type: Asset
 api_version: core/v2
