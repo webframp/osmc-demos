@@ -1,0 +1,39 @@
+---
+type: Asset
+api_version: core/v2
+metadata:
+  name: sensu-go-elasticsearch
+spec:
+  url: https://assets.bonsai.sensu.io/e739c45c6d1127ebf6472988e0efe5f4a116bd88/sensu-go-elasticsearch_0.2.1_linux_amd64.tar.gz
+  sha512: e09afc9058bc73f141d421115b949b45381897f68cf87bc936b9756021fd64c92a2a89b9ca7477ef7eb1c1f76166ce6ad1ae23274283b69c0e065ff0be8cec91
+---
+type: Handler
+api_version: core/v2
+metadata:
+  name: elastic
+spec:
+  type: pipe
+  runtime_assets:
+  - sensu-go-elasticsearch
+  command: sensu-go-elasticsearch --index sensu_events --dated_index --full_event_logging
+  env_vars:
+  - "ELASTICSEARCH_URL=http://elastic.sensu-system.svc.cluster.local:9200"
+  timeout: 30
+  filters:
+  - is_incident
+---
+type: CheckConfig
+api_version: core/v2
+metadata:
+  name: web-healthz
+spec:
+  runtime_assets:
+  - check-plugins
+  command: check-http -u http://localhost:8080/healthz
+  subscriptions:
+  - web
+  interval: 10
+  publish: true
+  handlers:
+  - pagerduty
+  - elastic
